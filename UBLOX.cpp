@@ -1,382 +1,267 @@
 /*
-UBLOX.cpp
-Brian R Taylor
-brian.taylor@bolderflight.com
-2016-11-03
-
-Copyright (c) 2016 Bolder Flight Systems
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or 
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  UBLOX.h
+  Copyright (C) 2017 Curtis L. Olson curtolson@flightgear.org
 */
-
-// Teensy 3.0 || Teensy 3.1/3.2 || Teensy 3.5 || Teensy 3.6 || Teensy LC 
-#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || \
-	defined(__MK66FX1M0__) || defined(__MKL26Z64__)
 
 #include "Arduino.h"
 #include "UBLOX.h"
 
 /* uBlox object, input the serial bus */
 UBLOX::UBLOX(uint8_t bus){
-  _bus = bus; // serial bus
+    _bus = bus; // serial bus
 }
 
 /* starts the serial communication */
 void UBLOX::begin(int baud){
 
-  	// initialize parsing state
-  	_fpos = 0;
+    // select the serial port
+#if defined(__MK20DX128__) || defined(__MK20DX256__) ||  defined(__MKL26Z64__) // Teensy 3.0 || Teensy 3.1/3.2 || Teensy LC
 
-	// select the serial port
-	#if defined(__MK20DX128__) || defined(__MK20DX256__) ||  defined(__MKL26Z64__) // Teensy 3.0 || Teensy 3.1/3.2 || Teensy LC
-
-		if(_bus == 3){
-			_port = &Serial3;
-		}
-		else if(_bus == 2){
-			_port = &Serial2;
-		}
-		else{
-			_port = &Serial1;
-		}
-
-	#endif
-
-	#if defined(__MK64FX512__) || defined(__MK66FX1M0__) // Teensy 3.5 || Teensy 3.6
-
-		if(_bus == 6){
-			_port = &Serial6;
-		}
-		else if(_bus == 5){
-			_port = &Serial5;
-		}
-		else if(_bus == 4){
-			_port = &Serial4;
-		}
-		else if(_bus == 3){
-			_port = &Serial3;
-		}
-		else if(_bus == 2){
-			_port = &Serial2;
-		}
-		else{
-			_port = &Serial1;
-		}
-
-	#endif
-
-  	// begin the serial port for uBlox
-  	_port->begin(baud);
-}
-
-/* read the uBlox data */
-bool UBLOX::read(gpsData *gpsData_ptr){
-
-    const double mm2m = 1.0e-3;
-    const double en7 = 1.0e-7;
-    const double en5 = 1.0e-5;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}iTOW;
-
-	union{
-		unsigned short val;
-		uint8_t b[2];
-	}utcYear;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}tAcc;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}utcNano;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}lon;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}lat;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}height;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}hMSL;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}hAcc;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}vAcc;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}velN;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}velE;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}velD;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}gSpeed;
-
-	union{
-		long val;
-		uint8_t b[4];
-	}heading;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}sAcc;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}headingAcc;
-
-	union{
-		unsigned short val;
-		uint8_t b[2];
-	}pDOP;
-
-	union{
-		unsigned long val;
-		uint8_t b[4];
-	}headVeh;
-
-  // parse the uBlox packet
-  if(parse()){
-
-    	iTOW.b[0] = _gpsPayload[4];
-    	iTOW.b[1] = _gpsPayload[5];
-    	iTOW.b[2] = _gpsPayload[6];
-    	iTOW.b[3] = _gpsPayload[7];
-    	gpsData_ptr->iTOW = iTOW.val;
-
-    	utcYear.b[0] = _gpsPayload[8];
-    	utcYear.b[1] = _gpsPayload[9];
-    	gpsData_ptr->utcYear = utcYear.val;
-
-    	gpsData_ptr->utcMonth = _gpsPayload[10];
-    	gpsData_ptr->utcDay = _gpsPayload[11];
-    	gpsData_ptr->utcHour = _gpsPayload[12];
-    	gpsData_ptr->utcMin = _gpsPayload[13];
-    	gpsData_ptr->utcSec = _gpsPayload[14];
-    	gpsData_ptr->valid = _gpsPayload[15];
-
-    	tAcc.b[0] = _gpsPayload[16];
-    	tAcc.b[1] = _gpsPayload[17];
-    	tAcc.b[2] = _gpsPayload[18];
-    	tAcc.b[3] = _gpsPayload[19];
-    	gpsData_ptr->tAcc = tAcc.val;
-
-    	utcNano.b[0] = _gpsPayload[20];
-    	utcNano.b[1] = _gpsPayload[21];
-    	utcNano.b[2] = _gpsPayload[22];
-    	utcNano.b[3] = _gpsPayload[23];
-    	gpsData_ptr->utcNano = utcNano.val;
-
-    	gpsData_ptr->fixType = _gpsPayload[24];
-    	gpsData_ptr->flags = _gpsPayload[25];
-    	gpsData_ptr->flags2 = _gpsPayload[26];
-    	gpsData_ptr->numSV = _gpsPayload[27];
-
-    	lon.b[0] = _gpsPayload[28];
-    	lon.b[1] = _gpsPayload[29];
-    	lon.b[2] = _gpsPayload[30];
-    	lon.b[3] = _gpsPayload[31];
-    	gpsData_ptr->lon = lon.val * en7;
-
-    	lat.b[0] = _gpsPayload[32];
-    	lat.b[1] = _gpsPayload[33];
-    	lat.b[2] = _gpsPayload[34];
-    	lat.b[3] = _gpsPayload[35];
-    	gpsData_ptr->lat = lat.val * en7;
-
-    	height.b[0] = _gpsPayload[36];
-    	height.b[1] = _gpsPayload[37];
-    	height.b[2] = _gpsPayload[38];
-    	height.b[3] = _gpsPayload[39];
-    	gpsData_ptr->height = height.val * mm2m;
-
-    	hMSL.b[0] = _gpsPayload[40];
-    	hMSL.b[1] = _gpsPayload[41];
-    	hMSL.b[2] = _gpsPayload[42];
-    	hMSL.b[3] = _gpsPayload[43];
-    	gpsData_ptr->hMSL = hMSL.val * mm2m;
-
-    	hAcc.b[0] = _gpsPayload[44];
-    	hAcc.b[1] = _gpsPayload[45];
-    	hAcc.b[2] = _gpsPayload[46];
-    	hAcc.b[3] = _gpsPayload[47];
-    	gpsData_ptr->hAcc = hAcc.val * mm2m;
-
-    	vAcc.b[0] = _gpsPayload[48];
-    	vAcc.b[1] = _gpsPayload[49];
-    	vAcc.b[2] = _gpsPayload[50];
-    	vAcc.b[3] = _gpsPayload[51];
-    	gpsData_ptr->vAcc = vAcc.val * mm2m;
-
-    	velN.b[0] = _gpsPayload[52];
-    	velN.b[1] = _gpsPayload[53];
-    	velN.b[2] = _gpsPayload[54];
-    	velN.b[3] = _gpsPayload[55];
-    	gpsData_ptr->velN = velN.val * mm2m;
-
-    	velE.b[0] = _gpsPayload[56];
-    	velE.b[1] = _gpsPayload[57];
-    	velE.b[2] = _gpsPayload[58];
-    	velE.b[3] = _gpsPayload[59];
-    	gpsData_ptr->velE = velE.val * mm2m;
-
-    	velD.b[0] = _gpsPayload[60];
-    	velD.b[1] = _gpsPayload[61];
-    	velD.b[2] = _gpsPayload[62];
-    	velD.b[3] = _gpsPayload[63];
-    	gpsData_ptr->velD = velD.val * mm2m;
-
-    	gSpeed.b[0] = _gpsPayload[64];
-    	gSpeed.b[1] = _gpsPayload[65];
-    	gSpeed.b[2] = _gpsPayload[66];
-    	gSpeed.b[3] = _gpsPayload[67];
-    	gpsData_ptr->gSpeed = gSpeed.val * mm2m;
-
-    	heading.b[0] = _gpsPayload[68];
-    	heading.b[1] = _gpsPayload[69];
-    	heading.b[2] = _gpsPayload[70];
-    	heading.b[3] = _gpsPayload[71];
-    	gpsData_ptr->heading = heading.val * en5;
-
-    	sAcc.b[0] = _gpsPayload[72];
-    	sAcc.b[1] = _gpsPayload[73];
-    	sAcc.b[2] = _gpsPayload[74];
-    	sAcc.b[3] = _gpsPayload[75];
-    	gpsData_ptr->sAcc = sAcc.val  * mm2m;
-
-    	headingAcc.b[0] = _gpsPayload[76];
-    	headingAcc.b[1] = _gpsPayload[77];
-    	headingAcc.b[2] = _gpsPayload[78];
-    	headingAcc.b[3] = _gpsPayload[79];
-    	gpsData_ptr->headingAcc = headingAcc.val * en5;
-
-    	pDOP.b[0] = _gpsPayload[80];
-    	pDOP.b[1] = _gpsPayload[81];
-    	gpsData_ptr->pDOP = pDOP.val * 0.01L;
-
-    	headVeh.b[0] = _gpsPayload[88];
-    	headVeh.b[1] = _gpsPayload[89];
-    	headVeh.b[2] = _gpsPayload[90];
-    	headVeh.b[3] = _gpsPayload[91];
-    	gpsData_ptr->headVeh = headVeh.val * en5;
-
-    // return true on receiving a full packet
-    return true;
-  }
-  else{
-
-    // return false if a full packet is not received
-    return false;
-  }
-
-}
-
-/* parse the uBlox data */
-bool UBLOX::parse(){
-    // uBlox UBX header definition
-    const unsigned char UBX_HEADER[] = { 0xB5, 0x62 };
-
-    // checksum calculation
-    static unsigned char checksum[2];
-
-    // read a byte from the serial port
-    while ( _port->available() ) {
-		uint8_t c = _port->read();
-
-        // identify the packet header
-        if ( _fpos < 2 ) {
-            if ( c == UBX_HEADER[_fpos] ) {
-                _fpos++;
-            }
-            else
-                _fpos = 0;
-        }
-        else {
-
-            // grab the payload
-            if ( (_fpos-2) < _payloadSize )
-                ((unsigned char*)_gpsPayload)[_fpos-2] = c;
-                _fpos++;
-
-            // compute checksum
-            if ( (_fpos-2) == _payloadSize ) {
-                calcChecksum(checksum,_gpsPayload,_payloadSize);
-            }
-            else if ( (_fpos-2) == (_payloadSize+1) ) {
-                if ( c != checksum[0] )
-                    _fpos = 0;
-            }
-            else if ( (_fpos-2) == (_payloadSize+2) ) {
-                _fpos = 0;
-                if ( c == checksum[1] ) {
-                    return true;
-                }
-            }
-            else if ( _fpos > (_payloadSize+4) ) {
-                _fpos = 0;
-            }
-        }
+    if(_bus == 3){
+        _port = &Serial3;
     }
-    return false;
-}
-
-/* uBlox checksum */
-void UBLOX::calcChecksum(unsigned char* CK, unsigned char* payload, uint8_t length){
-	CK[0] = 0;
-    CK[1] = 0;
-    for (uint8_t i = 0; i < length; i++) {
-        CK[0] += payload[i];
-        CK[1] += CK[0];
+    else if(_bus == 2){
+        _port = &Serial2;
     }
-}
+    else{
+        _port = &Serial1;
+    }
 
 #endif
+
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__) // Teensy 3.5 || Teensy 3.6
+
+    if(_bus == 6){
+        _port = &Serial6;
+    }
+    else if(_bus == 5){
+        _port = &Serial5;
+    }
+    else if(_bus == 4){
+        _port = &Serial4;
+    }
+    else if(_bus == 3){
+        _port = &Serial3;
+    }
+    else if(_bus == 2){
+        _port = &Serial2;
+    }
+    else{
+        _port = &Serial1;
+    }
+
+#endif
+
+    // begin the serial port for uBlox
+    _port->begin(baud);
+}
+
+
+bool UBLOX::read_ublox8() {
+    static int state = 0;
+    static int msg_class = 0, msg_id = 0;
+    static int length_lo = 0, length_hi = 0, payload_length = 0;
+    static int counter = 0;
+    static uint8_t cksum_A = 0, cksum_B = 0, cksum_lo = 0, cksum_hi = 0;
+    int len;
+    uint8_t input;
+    static uint8_t payload[500];
+
+    // printf("read ublox8, entry state = %d\n", state);
+
+    bool new_position = false;
+
+    if ( state == 0 ) {
+	counter = 0;
+	cksum_A = cksum_B = 0;
+	while ( _port->available() ) {
+	    input = _port->read();
+	    // fprintf( stderr, "state0: len = %d val = %2X\n", len, input );
+            if ( input == 0xB5 ) {\
+                state = 1;
+                break;
+            }
+	}
+    }
+    if ( state == 1 ) {
+        if ( _port->available() >= 1 ) {
+            input = _port->read();
+	    if ( input == 0x62 ) {
+		// fprintf( stderr, "read 0x62\n");
+		state = 2;
+	    } else if ( input == 0xB5 ) {
+		// fprintf( stderr, "read 0xB5\n");
+	    } else {
+                // oops
+		state = 0;
+	    }
+	}
+    }
+    if ( state == 2 ) {
+        if ( _port->available() >= 1 ) {
+	    msg_class = _port->read();
+	    cksum_A += msg_class;
+	    cksum_B += cksum_A;
+	    // fprintf( stderr, "msg class = %d\n", msg_class );
+	    state = 3;
+	}
+    }
+    if ( state == 3 ) {
+        if ( _port->available() >= 1 ) {
+	    msg_id = _port->read();
+	    cksum_A += msg_id;
+	    cksum_B += cksum_A;
+	    // fprintf( stderr, "msg id = %d\n", msg_id );
+	    state = 4;
+	}
+    }
+    if ( state == 4 ) {
+        if ( _port->available() >= 1 ) {
+	    length_lo = _port->read();
+	    cksum_A += length_lo;
+	    cksum_B += cksum_A;
+	    state = 5;
+	}
+    }
+    if ( state == 5 ) {
+        if ( _port->available() >= 1 ) {
+	    length_hi = _port->read();
+	    cksum_A += length_hi;
+	    cksum_B += cksum_A;
+	    payload_length = length_hi*256 + length_lo;
+	    // fprintf( stderr, "payload len = %d\n", payload_length );
+	    if ( payload_length > 400 ) {
+		state = 0;
+	    } else {
+		state = 6;
+	    }
+	}
+    }
+    if ( state == 6 ) {
+	while ( _port->available() ) {
+            uint8_t val = _port->read();
+	    payload[counter++] = val;
+	    //fprintf( stderr, "%02X ", input );
+	    cksum_A += val;
+	    cksum_B += cksum_A;
+	    if ( counter >= payload_length ) {
+		break;
+	    }
+	}
+
+	if ( counter >= payload_length ) {
+	    state = 7;
+	    //fprintf( stderr, "\n" );
+	}
+    }
+    if ( state == 7 ) {
+        if ( _port->available() ) {
+	    cksum_lo = _port->read();
+	    state = 8;
+	}
+    }
+    if ( state == 8 ) {
+        if ( _port->available() ) {
+	    cksum_hi = _port->read();
+	    if ( cksum_A == cksum_lo && cksum_B == cksum_hi ) {
+                // Serial.print("gps checksum passes. class: ");
+                // Serial.print(msg_class);
+                // Serial.print(" id = ");
+                // Serial.println(msg_id);
+		new_position = parse_msg( msg_class, msg_id,
+                                          payload_length, payload );
+	    } else {
+                // Serial.println("gps checksum fail");
+                // printf("checksum failed %d %d (computed) != %d %d (message)\n",
+                //        cksum_A, cksum_B, cksum_lo, cksum_hi );
+	    }
+	    // this is the end of a record, reset state to 0 to start
+	    // looking for next record
+	    state = 0;
+	}
+    }
+
+    return new_position;
+}
+
+
+bool UBLOX::parse_msg( uint8_t msg_class, uint8_t msg_id,
+                       uint16_t payload_length, uint8_t *payload )
+{
+    bool new_position = false;
+    static bool set_system_time = false;
+
+    if ( msg_class == 0x01 && msg_id == 0x02 ) {
+	// NAV-POSLLH: Please refer to the ublox6 driver (here or in the
+	// code history) for a nav-posllh parser
+    } else if ( msg_class == 0x01 && msg_id == 0x06 ) {
+	// NAV-SOL: Please refer to the ublox6 driver (here or in the
+	// code history) for a nav-sol parser that transforms eced
+	// pos/vel to lla pos/ned vel.
+    } else if ( msg_class == 0x01 && msg_id == 0x07 ) {
+	// NAV-PVT
+	uint8_t *p = payload;
+	data.iTOW = *((uint32_t *)p+0);
+	data.year = *((uint16_t *)(p+4));
+	data.month = p[6];
+	data.day = p[7];
+	data.hour = p[8];
+	data.min = p[9];
+	data.sec = p[10];
+	data.valid = p[11];
+	data.tAcc = *((uint32_t *)(p+12));
+	data.nano = *((int32_t *)(p+16));
+	data.fixType = p[20];
+	data.flags = p[21];
+	data.numSV = p[23];
+	data.lon = *((int32_t *)(p+24));
+	data.lat = *((int32_t *)(p+28));
+	data.height = *((int32_t *)(p+32));
+	data.hMSL = *((int32_t *)(p+36));
+	data.hAcc = *((uint32_t *)(p+40));
+	data.vAcc = *((uint32_t *)(p+44));
+	data.velN = *((int32_t *)(p+48));
+	data.velE = *((int32_t *)(p+52));
+	data.velD = *((int32_t *)(p+56));
+	data.gSpeed = *((uint32_t *)(p+60));
+	data.heading = *((int32_t *)(p+64));
+	data.sAcc = *((uint32_t *)(p+68));
+	data.headingAcc = *((uint32_t *)(p+72));
+	data.pDOP = *((uint16_t *)(p+76));
+	if ( data.fixType == 3 ) {
+	    // gps thinks we have a good 3d fix so flag our data good.
+ 	    new_position = true;
+	}
+    } else if ( msg_class == 0x01 && msg_id == 0x12 ) {
+	// NAV-VELNED: Please refer to the ublox6 driver (here or in the
+	// code history) for a nav-velned parser
+    } else if ( msg_class == 0x01 && msg_id == 0x21 ) {
+	// NAV-TIMEUTC: Please refer to the ublox6 driver (here or in the
+	// code history) for a nav-timeutc parser
+    } else if ( msg_class == 0x01 && msg_id == 0x30 ) {
+	// NAV-SVINFO (partial parse)
+	uint8_t *p = payload;
+	// uint32_t iTOW = *((uint32_t *)(p+0));
+	uint8_t numCh = p[4];
+	// uint8_t globalFlags = p[5];
+	int satUsed = 0;
+	for ( int i = 0; i < numCh; i++ ) {
+	    // uint8_t satid = p[9 + 12*i];
+	    // uint8_t flags = p[10 + 12*i];
+	    uint8_t quality = p[11 + 12*i];
+	    // printf(" chn=%d satid=%d flags=%d quality=%d\n", i, satid, flags, quality);
+	    if ( quality > 3 ) {
+		satUsed++;
+	    }
+	}
+    } else {
+	if ( false ) {
+            Serial.print("ublox8 msg class: ");
+            Serial.print(msg_class);
+            Serial.print(" msg id: ");
+            Serial.print(msg_id);
+	}
+    }
+
+    return new_position;
+}
