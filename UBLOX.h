@@ -45,7 +45,6 @@ class UBLOX {
     
 private:
 
-    uint8_t _bus;
     HardwareSerial* _port;
     nav_pvt data;
     
@@ -54,7 +53,7 @@ private:
 
 public:
     
-    UBLOX(uint8_t bus);
+    UBLOX(HardwareSerial* port);
     void begin(int baud);
     bool read_ublox8();
     nav_pvt get_data() const { return data; }

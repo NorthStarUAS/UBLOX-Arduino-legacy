@@ -7,51 +7,12 @@
 #include "UBLOX.h"
 
 /* uBlox object, input the serial bus */
-UBLOX::UBLOX(uint8_t bus){
-    _bus = bus; // serial bus
+UBLOX::UBLOX(HardwareSerial* port){
+    _port = port; // serial port
 }
 
 /* starts the serial communication */
 void UBLOX::begin(int baud){
-
-    // select the serial port
-#if defined(__MK20DX128__) || defined(__MK20DX256__) ||  defined(__MKL26Z64__) // Teensy 3.0 || Teensy 3.1/3.2 || Teensy LC
-
-    if(_bus == 3){
-        _port = &Serial3;
-    }
-    else if(_bus == 2){
-        _port = &Serial2;
-    }
-    else{
-        _port = &Serial1;
-    }
-
-#endif
-
-#if defined(__MK64FX512__) || defined(__MK66FX1M0__) // Teensy 3.5 || Teensy 3.6
-
-    if(_bus == 6){
-        _port = &Serial6;
-    }
-    else if(_bus == 5){
-        _port = &Serial5;
-    }
-    else if(_bus == 4){
-        _port = &Serial4;
-    }
-    else if(_bus == 3){
-        _port = &Serial3;
-    }
-    else if(_bus == 2){
-        _port = &Serial2;
-    }
-    else{
-        _port = &Serial1;
-    }
-
-#endif
-
     // begin the serial port for uBlox
     _port->begin(baud);
 }
