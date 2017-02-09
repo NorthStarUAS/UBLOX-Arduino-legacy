@@ -8,6 +8,8 @@
 
 #include "Arduino.h"				
 
+#pragma pack(push)              // save current alignment
+#pragma pack(1)                 // set alignment to 1 byte boundary
 struct nav_pvt {
     uint32_t iTOW;
     int16_t year;
@@ -37,6 +39,7 @@ struct nav_pvt {
     uint32_t headingAcc;
     uint16_t pDOP;
 };
+# pragma pack(pop)              // restore original alignment
 
 class UBLOX {
     
