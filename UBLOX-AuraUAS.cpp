@@ -1,24 +1,24 @@
 /*
-  UBLOX.h
+  UBLOX-AuraUAS.cpp
   Copyright (C) 2017 Curtis L. Olson curtolson@flightgear.org
 */
 
 #include "Arduino.h"
-#include "UBLOX.h"
+#include "UBLOX-AuraUAS.h"
 
 /* uBlox object, input the serial bus */
-UBLOX::UBLOX(HardwareSerial* port){
+UBLOX_AuraUAS::UBLOX_AuraUAS(HardwareSerial* port){
     _port = port; // serial port
 }
 
 /* starts the serial communication */
-void UBLOX::begin(int baud){
+void UBLOX_AuraUAS::begin(int baud){
     // begin the serial port for uBlox
     _port->begin(baud);
 }
 
 
-bool UBLOX::read_ublox8() {
+bool UBLOX_AuraUAS::read_ublox8() {
     static int state = 0;
     static int msg_class = 0, msg_id = 0;
     static int length_lo = 0, length_hi = 0, payload_length = 0;
@@ -146,7 +146,7 @@ bool UBLOX::read_ublox8() {
 }
 
 
-bool UBLOX::parse_msg( uint8_t msg_class, uint8_t msg_id,
+bool UBLOX_AuraUAS::parse_msg( uint8_t msg_class, uint8_t msg_id,
                        uint16_t payload_length, uint8_t *payload )
 {
     bool new_data = false;
