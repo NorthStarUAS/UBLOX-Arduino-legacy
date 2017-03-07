@@ -8,8 +8,7 @@
 
 #include "Arduino.h"				
 
-#pragma pack(push)              // save current alignment
-#pragma pack(1)                 // set alignment to 1 byte boundary
+#pragma pack(push, 1)           // set alignment to 1 byte boundary
 struct nav_pvt {
     uint32_t iTOW;
     int16_t year;

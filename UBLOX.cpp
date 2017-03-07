@@ -30,7 +30,7 @@ bool UBLOX::read_ublox8() {
 
     // printf("read ublox8, entry state = %d\n", state);
 
-    bool new_position = false;
+    bool new_data = false;
 
     if ( state == 0 ) {
 	counter = 0;
@@ -129,7 +129,7 @@ bool UBLOX::read_ublox8() {
                 // Serial.print(msg_class);
                 // Serial.print(" id = ");
                 // Serial.println(msg_id);
-		new_position = parse_msg( msg_class, msg_id,
+		new_data = parse_msg( msg_class, msg_id,
                                           payload_length, payload );
 	    } else {
                 // Serial.println("gps checksum fail");
@@ -142,14 +142,14 @@ bool UBLOX::read_ublox8() {
 	}
     }
 
-    return new_position;
+    return new_data;
 }
 
 
 bool UBLOX::parse_msg( uint8_t msg_class, uint8_t msg_id,
                        uint16_t payload_length, uint8_t *payload )
 {
-    bool new_position = false;
+    bool new_data = false;
     static bool set_system_time = false;
 
     if ( msg_class == 0x01 && msg_id == 0x02 ) {
@@ -189,10 +189,9 @@ bool UBLOX::parse_msg( uint8_t msg_class, uint8_t msg_id,
 	data.sAcc = *((uint32_t *)(p+68));
 	data.headingAcc = *((uint32_t *)(p+72));
 	data.pDOP = *((uint16_t *)(p+76));
-	if ( data.fixType == 3 ) {
-	    // gps thinks we have a good 3d fix so flag our data good.
- 	    new_position = true;
-	}
+        new_data = true;
+        //Serial.print("fixType: ");
+        //Serial.println(data.fixType);
     } else if ( msg_class == 0x01 && msg_id == 0x12 ) {
 	// NAV-VELNED: Please refer to the ublox6 driver (here or in the
 	// code history) for a nav-velned parser
@@ -224,5 +223,5 @@ bool UBLOX::parse_msg( uint8_t msg_class, uint8_t msg_id,
 	}
     }
 
-    return new_position;
+    return new_data;
 }
