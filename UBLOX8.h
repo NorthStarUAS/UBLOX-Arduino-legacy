@@ -1,10 +1,10 @@
 /*
-  UBLOX-AuraUAS.h
+  UBLOX8.h
   Copyright (C) 2017 Curtis L. Olson curtolson@flightgear.org
 */
 
-#ifndef UBLOX_AURAUAS_H
-#define UBLOX_AURAUAS_H
+#ifndef UBLOX8_H
+#define UBLOX8_H
 
 #include "Arduino.h"				
 
@@ -40,7 +40,7 @@ struct nav_pvt {
 };
 # pragma pack(pop)              // restore original alignment
 
-class UBLOX_AuraUAS {
+class UBLOX8 {
     
 private:
 
@@ -52,11 +52,11 @@ private:
 
 public:
     
-    UBLOX_AuraUAS(HardwareSerial* port);
+    UBLOX8(HardwareSerial* port);
     void begin(int baud);
     bool read_ublox8();
     nav_pvt get_data() const { return data; }
 
 };
 
-#endif // UBLOX_AURAUAS_H
+#endif // UBLOX8_H

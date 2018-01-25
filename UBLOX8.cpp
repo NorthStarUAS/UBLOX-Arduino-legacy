@@ -1,24 +1,24 @@
 /*
-  UBLOX-AuraUAS.cpp
+  UBLOX8.cpp
   Copyright (C) 2017 Curtis L. Olson curtolson@flightgear.org
 */
 
 #include "Arduino.h"
-#include "UBLOX-AuraUAS.h"
+#include "UBLOX8.h"
 
 /* uBlox object, input the serial bus */
-UBLOX_AuraUAS::UBLOX_AuraUAS(HardwareSerial* port){
+UBLOX8::UBLOX8(HardwareSerial* port){
     _port = port; // serial port
 }
 
 /* starts the serial communication */
-void UBLOX_AuraUAS::begin(int baud){
+void UBLOX8::begin(int baud){
     // begin the serial port for uBlox
     _port->begin(baud);
 }
 
 
-bool UBLOX_AuraUAS::read_ublox8() {
+bool UBLOX8::read_ublox8() {
     static int state = 0;
     static int msg_class = 0, msg_id = 0;
     static int length_lo = 0, length_hi = 0, payload_length = 0;
@@ -72,7 +72,7 @@ bool UBLOX_AuraUAS::read_ublox8() {
 	    msg_id = _port->read();
 	    cksum_A += msg_id;
 	    cksum_B += cksum_A;
-	    // fprintf( stderr, "msg id = %d\n", msg_id );
+            // Serial.print("msg id = "); Serial.println(msg_id);
 	    state = 4;
 	}
     }
@@ -90,7 +90,7 @@ bool UBLOX_AuraUAS::read_ublox8() {
 	    cksum_A += length_hi;
 	    cksum_B += cksum_A;
 	    payload_length = length_hi*256 + length_lo;
-	    // fprintf( stderr, "payload len = %d\n", payload_length );
+	    // Serial.print("payload len = "); Serial.println(payload_length);
 	    if ( payload_length > 400 ) {
 		state = 0;
 	    } else {
@@ -125,12 +125,10 @@ bool UBLOX_AuraUAS::read_ublox8() {
         if ( _port->available() ) {
 	    cksum_hi = _port->read();
 	    if ( cksum_A == cksum_lo && cksum_B == cksum_hi ) {
-                // Serial.print("gps checksum passes. class: ");
-                // Serial.print(msg_class);
-                // Serial.print(" id = ");
-                // Serial.println(msg_id);
+                // Serial.print("gps checksum passes. class: "); Serial.print(msg_class);
+                // Serial.print(" id = "); Serial.println(msg_id);
 		new_data = parse_msg( msg_class, msg_id,
-                                          payload_length, payload );
+                                      payload_length, payload );
 	    } else {
                 // Serial.println("gps checksum fail");
                 // printf("checksum failed %d %d (computed) != %d %d (message)\n",
@@ -146,7 +144,7 @@ bool UBLOX_AuraUAS::read_ublox8() {
 }
 
 
-bool UBLOX_AuraUAS::parse_msg( uint8_t msg_class, uint8_t msg_id,
+bool UBLOX8::parse_msg( uint8_t msg_class, uint8_t msg_id,
                        uint16_t payload_length, uint8_t *payload )
 {
     bool new_data = false;
