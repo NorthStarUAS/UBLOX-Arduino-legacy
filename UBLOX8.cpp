@@ -156,7 +156,7 @@ bool UBLOX8::parse_msg( uint8_t msg_class, uint8_t msg_id,
     } else if ( msg_class == 0x01 && msg_id == 0x06 ) {
 	// NAV-SOL: Please refer to the ublox6 driver (here or in the
 	// code history) for a nav-sol parser that transforms eced
-	// pos/vel to lla pos/ned vel.
+	// pos/vel to lla pos/need vel.
     } else if ( msg_class == 0x01 && msg_id == 0x07 ) {
 	// NAV-PVT
 	uint8_t *p = payload;
