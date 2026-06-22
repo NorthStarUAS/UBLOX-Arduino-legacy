@@ -1,4 +1,7 @@
 # UBLOX
+
+NOTICE: This project has moved to Codeberg.org <https://codeberg.org/NorthStarUAS>
+
 Library for communicating with [uBlox](https://www.u-blox.com) GPS receivers using Teensy 3.x and Teensy LC devices.
 
 # Description
